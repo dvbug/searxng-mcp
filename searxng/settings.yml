@@ -1,0 +1,94 @@
+# SearXNG configuration for mainland China-friendly deployment.
+# This file is mounted from the host at ./searxng/settings.yml.
+# Default engine set favors direct-connect Chinese-capable engines.
+# Overseas engines are disabled by default. Enable them only after setting
+# HTTP_PROXY / HTTPS_PROXY correctly in the environment.
+
+use_default_settings: true
+
+general:
+  instance_name: "SearXNG MCP"
+  debug: false
+  privacypolicy_url: false
+  enable_http: true
+  default_lang: "zh-CN"
+  default_locale: "zh-CN"
+  safe_search: 1
+  search_on_empty_query: false
+
+server:
+  bind_address: "0.0.0.0"
+  port: 8080
+  secret_key: "change-me-in-production"
+  limiter: true
+  image_proxy: false
+
+search:
+  formats:
+    - html
+    - json
+  default_lang: "zh-CN"
+  default_time_range: "none"
+  default_page_size: 10
+  request_timeout: 5.0
+  engine_timeout: 4.5
+  delay: 0.4
+  max_requests_per_second: 2
+
+engines:
+  # 中国大陆可直连：国内搜索引擎
+  - name: bing
+    engine: bing
+    shortcut: "b"
+    disabled: false
+    categories: ["general"]
+
+  - name: baidu
+    engine: baidu
+    shortcut: "bd"
+    disabled: false
+    categories: ["general"]
+
+  - name: sogou
+    engine: sogou
+    shortcut: "sg"
+    disabled: false
+    categories: ["general"]
+
+  - name: bing_news
+    engine: bing_news
+    shortcut: "bn"
+    disabled: false
+    categories: ["news"]
+
+  - name: cnki
+    engine: cnki
+    shortcut: "cnki"
+    disabled: false
+    categories: ["science"]
+
+  - name: arxiv
+    engine: arxiv
+    shortcut: "arx"
+    disabled: false
+    categories: ["science"]
+
+  # 海外引擎默认关闭：国内网络环境可能无法直接访问，需先配置代理。
+  # 若要启用，请在环境变量中设置 HTTP_PROXY / HTTPS_PROXY，并取消 disabled: true。
+  # - name: google
+  #   engine: google
+  #   shortcut: "g"
+  #   disabled: true
+  #   categories: ["general"]
+  #
+  # - name: duckduckgo
+  #   engine: duckduckgo
+  #   shortcut: "ddg"
+  #   disabled: true
+  #   categories: ["general"]
+  #
+  # - name: brave
+  #   engine: brave
+  #   shortcut: "br"
+  #   disabled: true
+  #   categories: ["general"]

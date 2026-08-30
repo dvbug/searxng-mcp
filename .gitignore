@@ -1,0 +1,21 @@
+# Local environment and generated runtime files
+.env
+.venv/
+**/.venv/
+.vscode/
+logs/
+!logs/.gitkeep
+searxng/data/*
+!searxng/data/.gitkeep
+*.log
+__pycache__/
+*.pyc
+*.pyo
+.DS_Store
+
+# Generated configuration artifacts
+mcp-clients/*.generated.json
+mcp-clients/*.local.json
+
+# Docker runtime state
+*.pid

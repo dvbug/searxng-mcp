@@ -1,0 +1,54 @@
+services:
+  searxng:
+    image: searxng/searxng:latest
+    container_name: searxng
+    restart: unless-stopped
+    ports:
+      - "${SEARXNG_BIND_PORT:-7777}:8080"
+    environment:
+      - SEARXNG_SETTINGS_PATH=/etc/searxng/settings.yml
+      - HTTP_PROXY=${HTTP_PROXY:-}
+      - HTTPS_PROXY=${HTTPS_PROXY:-}
+      - http_proxy=${HTTP_PROXY:-}
+      - https_proxy=${HTTPS_PROXY:-}
+    volumes:
+      - ./searxng/settings.yml:/etc/searxng/settings.yml:ro
+      - ./searxng/data:/var/cache/searxng
+    networks:
+      - mcp-net
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:8080/search || exit 1"]
+      interval: 20s
+      timeout: 10s
+      retries: 6
+      start_period: 30s
+
+  local-server:
+    build:
+      context: ./mcp-server
+      dockerfile: Dockerfile
+    container_name: local-server
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - SEARXNG_API_URL=http://searxng:8080/search
+      - MCP_LOG_LEVEL=${MCP_LOG_LEVEL:-INFO}
+      - MCP_LOG_PATH=/logs/mcp_server.log
+      - HTTP_PROXY=${HTTP_PROXY:-}
+      - HTTPS_PROXY=${HTTPS_PROXY:-}
+      - http_proxy=${HTTP_PROXY:-}
+      - https_proxy=${HTTPS_PROXY:-}
+    stdin_open: true
+    tty: false
+    volumes:
+      - ./logs:/logs
+    networks:
+      - mcp-net
+    depends_on:
+      searxng:
+        condition: service_healthy
+
+networks:
+  mcp-net:
+    driver: bridge

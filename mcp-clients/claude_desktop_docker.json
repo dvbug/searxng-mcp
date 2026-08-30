@@ -1,0 +1,19 @@
+{
+  "mcpServers": {
+    "searxng": {
+      "command": "docker",
+      "args": [
+        "compose",
+        "run",
+        "--rm",
+        "-i",
+        "local-server"
+      ],
+      "env": {
+        "SEARXNG_API_URL": "http://searxng:8080/search",
+        "MCP_LOG_LEVEL": "INFO",
+        "MCP_LOG_PATH": "/Users/vito/aienv/mcp/searxng-mcp/logs/mcp_server.log"
+      }
+    }
+  }
+}
