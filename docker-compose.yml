@@ -4,9 +4,10 @@ services:
     container_name: searxng
     restart: unless-stopped
     ports:
-      - "${SEARXNG_BIND_PORT:-7777}:8080"
+      - "127.0.0.1:${SEARXNG_BIND_PORT:-7777}:8080"
     environment:
       - SEARXNG_SETTINGS_PATH=/etc/searxng/settings.yml
+      - SEARXNG_SECRET_KEY=${SEARXNG_SECRET_KEY:-force-change-me}
       - HTTP_PROXY=${HTTP_PROXY:-}
       - HTTPS_PROXY=${HTTPS_PROXY:-}
       - http_proxy=${HTTP_PROXY:-}
@@ -32,34 +33,18 @@ services:
     env_file:
       - .env
     ports:
-      - "17777:8000"
+      - "${MCP_BIND_HOST:-127.0.0.1}:${MCP_BIND_PORT:-17777}:${MCP_PORT:-8000}"
     environment:
+      # 容器内必须使用服务名访问 searxng（覆盖 .env 中的 127.0.0.1）
       - SEARXNG_API_URL=http://searxng:8080/search
-      - MCP_LOG_LEVEL=${MCP_LOG_LEVEL:-INFO}
+      # 容器内日志路径应为绝对路径（覆盖 .env 中的相对路径）
       - MCP_LOG_PATH=/logs/mcp_server.log
-      - MCP_TRANSPORT=${MCP_TRANSPORT:-http}
-      - MCP_HOST=0.0.0.0
-      - MCP_PORT=8000
-      - MCP_SSE_PATH=${MCP_SSE_PATH:-/sse}
-      - MCP_MESSAGE_PATH=${MCP_MESSAGE_PATH:-/messages/}
-      - MCP_STREAMABLE_HTTP_PATH=${MCP_STREAMABLE_HTTP_PATH:-/mcp}
+      # 代理设置沿用 .env（如需覆盖可在此设置）
       - HTTP_PROXY=${HTTP_PROXY:-}
       - HTTPS_PROXY=${HTTPS_PROXY:-}
       - http_proxy=${HTTP_PROXY:-}
       - https_proxy=${HTTPS_PROXY:-}
-    command:
-      - /opt/venv/bin/python
-      - /app/mcp-server/main2.py
-      - --transport
-      - streamable-http
-      - --host
-      - 0.0.0.0
-      - --port
-      - "8000"
-      - --streamable-http-path
-      - /mcp
-    stdin_open: true
-    tty: false
+    command: ["/opt/venv/bin/python", "/app/mcp-server/main2.py"]
     volumes:
       - ./logs:/logs
     networks:
@@ -67,6 +52,8 @@ services:
     depends_on:
       searxng:
         condition: service_healthy
+    stdin_open: true
+    tty: false
 
 networks:
   mcp-net:

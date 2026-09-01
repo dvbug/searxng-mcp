@@ -80,23 +80,24 @@ http://localhost:17777/mcp
 示例配置如下：
 
 ```env
-SEARXNG_API_URL=http://127.0.0.1:7777/search
-SEARXNG_BIND_PORT=7777
-HTTP_PROXY=
-HTTPS_PROXY=
-
-MCP_LOG_LEVEL=INFO
-MCP_LOG_PATH=./logs/mcp_server.log
-VENV_PATH=./mcp-server/.venv
-
-MCP_TRANSPORT=http
-MCP_HOST=0.0.0.0
-MCP_PORT=8000
-MCP_SSE_PATH=/sse
-MCP_MESSAGE_PATH=/messages/
-MCP_STREAMABLE_HTTP_PATH=/mcp
-MCP_JSON_RESPONSE=false
-MCP_STATELESS=true
+    SEARXNG_API_URL=http://127.0.0.1:7777/search
+    SEARXNG_BIND_PORT=7777
+    SEARXNG_SECRET_KEY=force-change-me
+    HTTP_PROXY=
+    HTTPS_PROXY=
+    MCP_LOG_LEVEL=INFO
+    MCP_LOG_PATH=./logs/mcp_server.log
+    VENV_PATH=./mcp-server/.venv
+    MCP_TRANSPORT=http
+    MCP_HOST=0.0.0.0
+    MCP_BIND_HOST=127.0.0.1
+    MCP_PORT=8000
+    MCP_BIND_PORT=17777
+    MCP_SSE_PATH=/sse
+    MCP_MESSAGE_PATH=/messages/
+    MCP_STREAMABLE_HTTP_PATH=/mcp
+    MCP_JSON_RESPONSE=false
+    MCP_STATELESS=true
 ```
 
 说明：
@@ -149,6 +150,30 @@ http://localhost:8000/mcp
 | `safesearch` | integer | `1` | 安全搜索等级：`0`, `1`, `2` |
 | `time_range` | string | `none` | 时间范围：`none`, `day`, `week`, `month`, `year` |
 | `page` | integer | `1` | 页码，从 `1` 开始 |
+
+### 请求示例
+```shell
+curl -X POST http://127.0.0.1:17777/mcp \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  -H "Mcp-Session-Id: $SESSION_ID" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 3,
+    "method": "tools/call",
+    "params": {
+      "name": "searxng_search",
+      "arguments": {
+        "query": "Python 教程",
+        "language": "zh-CN",
+        "safesearch": 1,
+        "time_range": "none",
+        "page": 1
+      }
+    }
+  }'
+
+```
 
 ### 返回示例
 
