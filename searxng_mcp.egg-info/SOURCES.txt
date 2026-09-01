@@ -1,0 +1,11 @@
+README.md
+pyproject.toml
+searxng_mcp.egg-info/PKG-INFO
+searxng_mcp.egg-info/SOURCES.txt
+searxng_mcp.egg-info/dependency_links.txt
+searxng_mcp.egg-info/requires.txt
+searxng_mcp.egg-info/top_level.txt
+tests/test_integration.py
+tests/test_main.py
+tests/test_mcp_protocol.py
+tests/test_request_handling.py

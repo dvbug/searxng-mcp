@@ -25,20 +25,39 @@ services:
 
   local-server:
     build:
-      context: ./mcp-server
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: mcp-server/Dockerfile
     container_name: local-server
     restart: unless-stopped
     env_file:
       - .env
+    ports:
+      - "17777:8000"
     environment:
       - SEARXNG_API_URL=http://searxng:8080/search
       - MCP_LOG_LEVEL=${MCP_LOG_LEVEL:-INFO}
       - MCP_LOG_PATH=/logs/mcp_server.log
+      - MCP_TRANSPORT=${MCP_TRANSPORT:-http}
+      - MCP_HOST=0.0.0.0
+      - MCP_PORT=8000
+      - MCP_SSE_PATH=${MCP_SSE_PATH:-/sse}
+      - MCP_MESSAGE_PATH=${MCP_MESSAGE_PATH:-/messages/}
+      - MCP_STREAMABLE_HTTP_PATH=${MCP_STREAMABLE_HTTP_PATH:-/mcp}
       - HTTP_PROXY=${HTTP_PROXY:-}
       - HTTPS_PROXY=${HTTPS_PROXY:-}
       - http_proxy=${HTTP_PROXY:-}
       - https_proxy=${HTTPS_PROXY:-}
+    command:
+      - /opt/venv/bin/python
+      - /app/mcp-server/main2.py
+      - --transport
+      - streamable-http
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8000"
+      - --streamable-http-path
+      - /mcp
     stdin_open: true
     tty: false
     volumes:

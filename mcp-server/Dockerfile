@@ -9,10 +9,11 @@ WORKDIR /app
 
 RUN python -m venv "$VIRTUAL_ENV"
 
-COPY requirements.txt ./requirements.txt
+COPY pyproject.toml ./pyproject.toml
 RUN "$VIRTUAL_ENV/bin/python" -m pip install --upgrade pip setuptools wheel && \
-    "$VIRTUAL_ENV/bin/python" -m pip install -r requirements.txt
+    "$VIRTUAL_ENV/bin/python" -m pip install -e .
 
-COPY . /app
+COPY ./mcp-server /app/mcp-server
+COPY ./searxng /app/searxng
 
-CMD ["/opt/venv/bin/python", "/app/main.py"]
+CMD ["/opt/venv/bin/python", "/app/mcp-server/main2.py", "--transport", "streamable-http", "--host", "0.0.0.0", "--port", "8000", "--streamable-http-path", "/mcp"]

@@ -13,7 +13,10 @@ REPO_ROOT="$SCRIPT_DIR"
 #    mcp-server/.venv
 VENV_PATH="${VENV_PATH:-$REPO_ROOT/mcp-server/.venv}"
 APP_DIR="$REPO_ROOT/mcp-server"
-MAIN_FILE="$APP_DIR/main.py"
+MAIN_FILE="$APP_DIR/main2.py"
+MCP_TRANSPORT="${MCP_TRANSPORT:-stdio}"
+MCP_HOST="${MCP_HOST:-0.0.0.0}"
+MCP_PORT="${MCP_PORT:-8000}"
 
 # 3) 校验 MCP 入口脚本是否存在，避免误运行导致空指针或找不到文件。
 if [[ ! -f "$MAIN_FILE" ]]; then
@@ -45,5 +48,11 @@ fi
 mkdir -p "$REPO_ROOT/logs"
 export MCP_LOG_PATH="${MCP_LOG_PATH:-$REPO_ROOT/logs/mcp_server.log}"
 
-# 8) 用项目内的 venv Python 直接启动 MCP 服务，保证是 stdio 模式，不启动 HTTP 服务。
-exec "$VENV_PATH/bin/python" "$MAIN_FILE"
+# 8) 用项目内的 venv Python 启动 MCP 服务，支持 stdio、sse 和 streamable-http。
+if [[ "$MCP_TRANSPORT" == "stdio" ]]; then
+  exec "$VENV_PATH/bin/python" "$MAIN_FILE" --transport stdio
+elif [[ "$MCP_TRANSPORT" == "sse" ]]; then
+  exec "$VENV_PATH/bin/python" "$MAIN_FILE" --transport sse --host "$MCP_HOST" --port "$MCP_PORT"
+else
+  exec "$VENV_PATH/bin/python" "$MAIN_FILE" --transport streamable-http --host "$MCP_HOST" --port "$MCP_PORT"
+fi

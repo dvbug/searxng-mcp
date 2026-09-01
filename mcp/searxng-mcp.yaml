@@ -1,0 +1,18 @@
+mcpServers:
+  searxng:
+    transport: streamable-http
+    url: http://localhost:17777/mcp
+
+# 兼容旧的 stdio 方式示例：
+# mcpServers:
+#   searxng-stdio:
+#     command: docker
+#     args:
+#       - compose
+#       - run
+#       - --rm
+#       - -i
+#       - local-server
+#     env:
+#       MCP_TRANSPORT: stdio
+#       SEARXNG_API_URL: http://searxng:8080/search

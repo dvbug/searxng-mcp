@@ -4,15 +4,15 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$SCRIPT_DIR"
 VENV_PATH="${VENV_PATH:-$REPO_ROOT/mcp-server/.venv}"
-REQUIREMENTS_FILE="$REPO_ROOT/mcp-server/requirements.txt"
+PROJECT_TOML="$REPO_ROOT/pyproject.toml"
 
 if [[ ! -d "$REPO_ROOT/mcp-server" ]]; then
   echo "[ERROR] mcp-server directory not found: $REPO_ROOT/mcp-server" >&2
   exit 1
 fi
 
-if [[ ! -f "$REQUIREMENTS_FILE" ]]; then
-  echo "[ERROR] requirements.txt not found: $REQUIREMENTS_FILE" >&2
+if [[ ! -f "$PROJECT_TOML" ]]; then
+  echo "[ERROR] pyproject.toml not found: $PROJECT_TOML" >&2
   exit 1
 fi
 
@@ -35,7 +35,8 @@ else
 fi
 
 "$VENV_PATH/bin/python" -m pip install --upgrade pip setuptools wheel
-"$VENV_PATH/bin/python" -m pip install -r "$REQUIREMENTS_FILE"
+cd "$REPO_ROOT"
+"$VENV_PATH/bin/python" -m pip install -e .
 
 cat <<EOF
 [INFO] Local development environment is ready.

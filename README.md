@@ -1,182 +1,234 @@
-# SearXNG MCP
+# SearXNG MCP Server
 
-This project packages a SearXNG web search service and a local MCP stdio server together for mainland China usage. It is designed so that after a Git clone, a single script can prepare the runtime, start the services, and expose both the browser search UI and the MCP tool.
+一个基于 [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) 的 SearXNG 搜索集成服务。项目当前以 `main2.py` 为主入口，支持 `stdio` / `sse` / `streamable-http` 三种传输方式，并通过 SearXNG 提供结构化搜索能力。
 
-## Git-ready project layout
+## 入口文件说明
+
+### `mcp-server/main.py`
+- 这是早期/兼容版本的 MCP 服务实现。
+- 采用标准输入输出（STDIO）模式，适合直接接入传统 MCP 客户端或本地命令行工具。
+- 这是一个更“原始”的 JSON-RPC 处理方式，主要用于兼容旧流程。
+
+### `mcp-server/main2.py`
+- 这是当前默认、推荐使用的实现。
+- 采用 `MCPServer` / FastMCP 风格，支持更现代的传输配置。
+- 当前支持三种模式：
+  - `stdio`
+  - `sse`
+  - `streamable-http`
+- Docker 和本地启动脚本都已指向 `main2.py`。
+
+> 结论：当前项目实际运行入口是 `main2.py`，而不是 `main.py`。
+
+## 项目结构
 
 ```text
-.
-├─ .gitignore
-├─ .env.example
-├─ docker-compose.yml
-├─ README.md
-├─ bootstrap.sh
-├─ create_venv.sh
-├─ run_local.sh
-├─ logs/
-│  └─ .gitkeep
-├─ searxng/
-│  ├─ settings.yml
-│  └─ data/
-│     └─ .gitkeep
-├─ mcp-clients/
-│  ├─ claude_desktop_docker.json
-│  └─ local_debug.json
-├─ mcp-server/
-│  ├─ Dockerfile
-│  ├─ main.py
-│  ├─ requirements.txt
-│  └─ .venv/
-└─ .env   # generated locally and ignored by Git
+searxng-mcp/
+├── pyproject.toml              # Python 依赖与项目配置
+├── mcp-server/
+│   ├── main.py                 # 旧版/兼容版 MCP 入口
+│   ├── main2.py                # 当前主入口，支持多传输
+│   ├── Dockerfile              # Docker 镜像定义
+│   └── .venv                   # 本地 Python 虚拟环境
+├── searxng/
+│   ├── settings.yml            # SearXNG 配置文件，挂载到 Docker 容器内
+│   └── data/                   # SearXNG 缓存/数据目录
+├── mcp/
+│   └── searxng-mcp.yaml        # MCP client/server 配置示例
+├── docker-compose.yml          # Docker 编排配置
+├── .env.example                # 环境变量模板
+├── .env                        # 本地实际配置（未跟踪）
+├── run_local.sh                # 本地运行脚本（默认启动 main2.py）
+├── create_venv.sh              # 虚拟环境初始化脚本
+├── deploy.sh                   # 一键部署脚本
+├── logs/                       # 日志目录
+├── tests/                      # 测试代码
+└── README.md                   # 项目说明
 ```
 
-## One-click deployment
+## 快速开始
 
-After cloning the repo, run:
+### 方式一：Docker 运行（推荐）
 
 ```bash
-chmod +x bootstrap.sh
-./bootstrap.sh
+cp .env.example .env
+
+docker compose up -d
+
+docker compose logs -f local-server
 ```
 
-The script will:
+当前 `local-server` 会按 `streamable-http` 模式启动，服务地址为：
 
-1. Create or repair the local `.env` from `.env.example`
-2. Ensure Docker and Docker Compose are available
-3. Create the local Python venv in `mcp-server/.venv`
-4. Install Python dependencies
-5. Start the `searxng` and `local-server` services with Docker Compose
-6. Validate that the browser endpoint and the MCP stdio interface work
-7. Print the final access URLs and client configuration guidance
-
-## Environment variables
-
-The repository ships a portable template in `.env.example`.
-
-```env
-SEARXNG_API_URL=http://searxng:8080/search
-SEARXNG_BIND_PORT=7777
-HTTP_PROXY=
-HTTPS_PROXY=
-MCP_LOG_LEVEL=INFO
-MCP_LOG_PATH=./logs/mcp_server.log
-VENV_PATH=./mcp-server/.venv
+```text
+http://localhost:17777/mcp
 ```
 
-This avoids hardcoded local machine paths so the project is safe to commit to Git and redeploy on other machines.
+这个地址对应的是 `main2.py` 启动时的 `streamable-http` 路径 `/mcp`。
 
-## Local development workflow
-
-### 1) Standard bootstrap
-
-```bash
-./bootstrap.sh
-```
-
-### 2) Manual local MCP server
+### 方式二：本地开发运行
 
 ```bash
 ./create_venv.sh
 ./run_local.sh
 ```
 
-## Docker workflow
+本地脚本会读取 `.env` 中的 `MCP_TRANSPORT`，并调用 `main2.py`。
 
-```bash
-docker compose up -d --build
-docker compose ps
-docker compose logs -f searxng
-docker compose logs -f server
+## 环境变量
+
+示例配置如下：
+
+```env
+SEARXNG_API_URL=http://127.0.0.1:7777/search
+SEARXNG_BIND_PORT=7777
+HTTP_PROXY=
+HTTPS_PROXY=
+
+MCP_LOG_LEVEL=INFO
+MCP_LOG_PATH=./logs/mcp_server.log
+VENV_PATH=./mcp-server/.venv
+
+MCP_TRANSPORT=http
+MCP_HOST=0.0.0.0
+MCP_PORT=8000
+MCP_SSE_PATH=/sse
+MCP_MESSAGE_PATH=/messages/
+MCP_STREAMABLE_HTTP_PATH=/mcp
+MCP_JSON_RESPONSE=false
+MCP_STATELESS=true
 ```
 
-Stop all services:
+说明：
+- `MCP_TRANSPORT=http` 在代码中会被映射为 `streamable-http`
+- `MCP_STREAMABLE_HTTP_PATH=/mcp` 与外部访问路径保持一致
+- Docker 中暴露端口是 `17777:8000`，因此外部访问为 `http://localhost:17777/mcp`
+
+## 传输方式
+
+### 1) stdio
 
 ```bash
-docker compose down
+python mcp-server/main2.py --transport stdio
 ```
 
-## Browser and MCP access
+适合本地桌面客户端、IDE 集成、命令行工具等。
 
-### Web UI
+### 2) SSE
 
-Open:
+```bash
+python mcp-server/main2.py --transport sse --host 0.0.0.0 --port 8000 --sse-path /sse --message-path /messages/
+```
+
+访问地址：
 
 ```text
-http://localhost:7777
+http://localhost:8000/sse
 ```
 
-### JSON API
+### 3) streamable-http
 
 ```bash
-curl "http://localhost:7777/search?q=python&language=zh-CN&format=json&pageno=1"
+python mcp-server/main2.py --transport streamable-http --host 0.0.0.0 --port 8000 --streamable-http-path /mcp
 ```
 
-### MCP stdio test
+访问地址：
 
-```bash
-printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"demo","version":"1.0.0"}}}' | ./mcp-server/.venv/bin/python ./mcp-server/main.py
+```text
+http://localhost:8000/mcp
 ```
 
-For Claude Desktop or Cursor, generate a client config from the project root and point the command to the repository-local venv and main script.
+## Tool：`searxng_search`
 
-## Git notes
+### 参数
 
-- `.env`, runtime logs, and local virtualenvs are ignored by Git.
-- Only source files, Docker config, and example client configs are versioned.
-- A clean clone can be bootstrapped with a single script and no host-specific config.
+| 参数 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `query` | string | 必填 | 搜索关键词 |
+| `language` | string | `zh-CN` | 语言，例如 `zh-CN`, `en`, `ja` |
+| `safesearch` | integer | `1` | 安全搜索等级：`0`, `1`, `2` |
+| `time_range` | string | `none` | 时间范围：`none`, `day`, `week`, `month`, `year` |
+| `page` | integer | `1` | 页码，从 `1` 开始 |
 
-## Safety notes
-
-- Keep the MCP server on stdio only; never expose it as an HTTP endpoint.
-- Default engines prefer mainland-direct search sources and avoid unstable overseas providers.
-- Use proxy variables only when you explicitly need to access overseas engines.
-
-## Example MCP client configs
-
-After running `./bootstrap.sh`, the repository automatically generates ready-to-use JSON config examples in `mcp-clients/` based on the actual clone path. These files can be imported directly into Claude Desktop, Cursor, or other MCP clients.
-
-### Local stdio config
+### 返回示例
 
 ```json
 {
-  "mcpServers": {
-    "searxng-local": {
-      "command": "/absolute/path/to/your/cloned/repo/mcp-server/.venv/bin/python",
-      "args": [
-        "/absolute/path/to/your/cloned/repo/mcp-server/main.py"
-      ],
-      "env": {
-        "SEARXNG_API_URL": "http://127.0.0.1:7777/search",
-        "MCP_LOG_LEVEL": "INFO",
-        "MCP_LOG_PATH": "/absolute/path/to/your/cloned/repo/logs/mcp_server.log"
-      }
+  "query": "Python tutorial",
+  "language": "zh-CN",
+  "safesearch": 1,
+  "time_range": "none",
+  "page": 1,
+  "total": 42,
+  "results": [
+    {
+      "title": "Python Tutorial",
+      "url": "https://example.com/python-tutorial",
+      "snippet": "A concise guide to Python programming.",
+      "source": "bing"
     }
-  }
+  ]
 }
 ```
 
-### Docker stdio config
+## SearXNG 配置挂载说明
 
-```json
-{
-  "mcpServers": {
-    "searxng": {
-      "command": "docker",
-      "args": [
-        "compose",
-        "run",
-        "--rm",
-        "-i",
-        "local-server"
-      ],
-      "env": {
-        "SEARXNG_API_URL": "http://searxng:8080/search",
-        "MCP_LOG_LEVEL": "INFO",
-        "MCP_LOG_PATH": "/absolute/path/to/your/cloned/repo/logs/mcp_server.log"
-      }
-    }
-  }
-}
+SearXNG 的配置是通过 Docker bind mount 方式挂载到容器的：
+
+```yaml
+./searxng/settings.yml:/etc/searxng/settings.yml:ro
 ```
 
-The generated JSON files in `mcp-clients/` already contain the correct absolute paths for the current machine, so there is no manual editing needed after the bootstrap script runs.
+因此：
+- 修改宿主机上的 [searxng/settings.yml](searxng/settings.yml) 即可生效
+- 只需重启 `searxng` 容器，不需要重新构建镜像或重新发布
+
+## 安全和兼容性改进
+
+当前代码中已经包含这些关键修正：
+
+- 允许 Docker 内部主机名和本地网络地址访问 SearXNG
+- `time_range="none"` 时不会再被错误地传给 SearXNG，避免 `HTTP 400`
+- `main2.py` 对 `stdio`, `sse`, `streamable-http` 做了统一启动逻辑
+- SearXNG API URL 校验支持本地 / Docker / 内网场景
+
+## 故障排查
+
+### 1) SearXNG 不可访问
+
+```bash
+curl -sS http://127.0.0.1:7777/search?q=test&format=json
+```
+
+如果失败，先检查：
+
+```bash
+docker compose logs searxng
+```
+
+### 2) MCP 服务未启动
+
+```bash
+docker compose logs -f local-server
+cat ./logs/mcp_server.log
+```
+
+### 3) 端口不通
+
+```bash
+curl -I http://localhost:17777/mcp
+```
+
+如果返回 `200`，说明 Streamable HTTP 服务正常。
+
+## 依赖
+
+- Python 3.12+
+- httpx
+- pydantic
+- python-dotenv
+- mcp
+
+## 许可证
+
+MIT
